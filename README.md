@@ -2,78 +2,109 @@
 
 **Team 004** — Prajakta Jadhav, Aariya Vora
 **IEEE Computer Society 2026 Global Student Challenge**
+**Competition:** FRESCO Early Job Failure Prediction Challenge (Kaggle)
 
 ## Problem
 
-Predict whether an HPC (high-performance computing) job will fail, time out, or
-end in a node failure, using only early job metadata and resource-usage signals
-— not the job's final outcome. Early, reliable prediction lets a scheduler
+Predict, for each HPC (high-performance computing) job, the probability
+that it will FAIL, TIME OUT, or end in NODE_FAIL — using only information
+realistically available **early** in the job's lifetime, not its full
+run history or final outcome. Early, reliable prediction lets a scheduler
 intervene before wasting hours of expensive compute time on a job that's
 already doomed.
 
+Full technical details, including our key data-leakage correction, are in
+[`METHODOLOGY.md`](./METHODOLOGY.md).
+
 ## Dataset — FRESCO
 
-We use the FRESCO dataset: real job telemetry collected from three academic
-HPC clusters (Purdue's Conte and Anvil, and UT Austin's Stampede). Data is
-released as raw **hourly Parquet files** — each row is one hourly snapshot of
-one job on one host, not one row per job. Cluster identity is encoded in the
-filename:
-- `..._S.parquet` → Stampede
-- `..._C.parquet` → Conte
+Real job telemetry from three academic HPC clusters (Purdue's Conte and
+Anvil, and UT Austin's Stampede), released as raw **hourly Parquet
+files** — each row is one hourly snapshot of one job on one host, not one
+row per job. Cluster identity is encoded in the filename:
+- `..._S.parquet` → Stampede (S)
+- `..._C.parquet` → Conte (C)
 - no suffix → Anvil
 
 ### Target definition
 - `0` — job COMPLETED successfully
 - `1` — job FAILED, TIMED OUT, or ended in NODE_FAIL
-- `CANCELLED` jobs are excluded from training entirely (per competition rules)
+- `CANCELLED` jobs are excluded from training (per competition rules)
+
+### Scoring metric
+Leaderboard ranking uses **macro-averaged AUPRC across the three scored
+clusters** (`macro_cluster_auprc`), not accuracy. We evaluate locally
+using the same formula.
 
 ### Leakage rule followed
-`exitcode` and any other field revealing the final outcome are used **only**
-to construct the label — never as a model input feature.
+`exitcode` and any field revealing the final outcome are used **only** to
+construct the label — never as a model input feature. Our first draft
+had a subtler leakage bug (using a job's *entire* lifetime to build
+features, not just its early portion) — see `METHODOLOGY.md` for how we
+caught and fixed this.
 
-## Pipeline (current baseline)
+## Cluster-specific modeling requirement
 
-1. **Load** a sample of raw hourly Parquet files across several months.
-2. **Aggregate** all hourly rows belonging to the same job (`jid`) into a
-   single row per job, summarizing resource usage (mean/max CPU, memory,
-   NFS, block I/O) and static job attributes (requested hosts, cores, time
-   limit).
-3. **Label** each job using the exitcode-based target defined above.
-4. **Train** a Random Forest baseline classifier on the aggregated
-   per-job features.
-5. **Evaluate** using precision, recall, and F1 — plain accuracy is
-   misleading here since failures are the minority class.
+This challenge requires **three separate cluster-specific models**
+(S, C, Anvil), not one pooled model — a pooled model without
+cluster-aware routing is explicitly insufficient per competition rules.
+`train_models.py` trains and saves one model per cluster independently.
 
-## Current baseline results
+## Pipeline
 
-On a sample of ~74k jobs (3 months, partial file sample per month):
+1. **Stream** raw hourly Parquet files one file at a time (memory-safe —
+   never loads a full month into memory at once).
+2. **Accumulate early-window features** per job: only the job's first
+   `EARLY_WINDOW_SNAPSHOTS` (currently 2) hourly readings are used —
+   simulating what would realistically be known while a job is still
+   running.
+3. **Label** each job using the exitcode-based target above.
+4. **Split temporally**: train on earlier months, validate on strictly
+   later months, per cluster era (no random shuffling across time).
+5. **Train** one `RandomForestClassifier` per cluster
+   (`class_weight="balanced"`), outputting failure **probabilities**.
+6. **Evaluate** using AUPRC per cluster, then macro-average — matching
+   the official leaderboard formula.
 
-| Metric | Completed | Failed / Timeout / Node-Fail |
-|---|---|---|
-| Precision | 0.86 | 0.79 |
-| Recall | 0.94 | 0.58 |
-| F1-score | 0.90 | 0.67 |
+## Current results (local validation)
 
-Overall accuracy: 0.85
+| Cluster | Validation jobs | Positive rate | AUPRC |
+|---|---|---|---|
+| Anvil | 32,139 | 0.258 | **0.828** |
+| Conte (C) | 104,637 | 0.091 | **0.274** |
+| Stampede (S) | 159,433 | 0.148 | **0.348** |
 
-**Top predictive features:** mean/max memory usage, requested time limit,
-CPU usage — matches real-world intuition (jobs failing from memory
-exhaustion or hitting their time limit).
+**Macro AUPRC (local estimate): 0.483**
+
+All three clusters score meaningfully above their random-guess baseline
+(which equals the positive rate, for AUPRC), confirming genuine
+predictive signal from early-window features alone.
 
 ## What's next
 
-- Scale up training data (currently using a small file sample per month
-  for fast iteration — full dataset has 46,795 participant files).
-- Improve recall on the failure class (currently missing ~42% of real
-  failures) — likely needs better features (e.g., trends over time within
-  a job, not just mean/max) or class-imbalance handling beyond
-  `class_weight="balanced"`.
-- Build proper temporal train/validation split (per competition rules,
-  avoid random splits that leak future behavior into training).
-- Generate predictions for the judge set in the required
-  `row_id = <cluster>_<jid>` submission format.
+- Scale up training data (currently a partial month sample per cluster
+  era, not the full 46,795-file participant set).
+- Try gradient boosting (XGBoost/LightGBM) as a stronger alternative to
+  Random Forest.
+- Add richer features: early usage *trend* within the window (not just
+  mean/max), historical account/queue failure rates.
+- Build the inference pipeline for the judge set and generate
+  `submission.csv` in the required `row_id,failure_probability` format.
 
 ## Files
 
-- `train_baseline.py` — data loading, aggregation, and baseline model
-  training pipeline described above.
+- `train_models.py` — full training pipeline described above (data
+  streaming, early-window feature extraction, per-cluster model
+  training, AUPRC evaluation).
+- `METHODOLOGY.md` — detailed write-up of our approach, including the
+  leakage bug we found and fixed.
+- `requirements.txt` — dependencies needed to run `train_models.py`.
+- `models/` — saved per-cluster model files (if included; otherwise
+  regenerate by running `train_models.py`).
+
+## Note on data
+
+Per competition rules, this repository does **not** include the FRESCO
+competition data itself. `train_models.py` expects the raw Parquet files
+to be downloaded separately (via `kagglehub` or the Kaggle competition
+page) and placed at the path configured at the top of the script.
