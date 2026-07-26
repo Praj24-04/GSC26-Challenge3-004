@@ -1,0 +1,9 @@
+# Incomplete downloads
+*.crdownload
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
