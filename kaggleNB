@@ -1,0 +1,456 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "1c9f8578",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "execution": {
+     "iopub.execute_input": "2026-07-26T08:20:49.421985Z",
+     "iopub.status.busy": "2026-07-26T08:20:49.421564Z",
+     "iopub.status.idle": "2026-07-26T08:20:49.433199Z",
+     "shell.execute_reply": "2026-07-26T08:20:49.432126Z"
+    },
+    "papermill": {
+     "duration": 0.017909,
+     "end_time": "2026-07-26T08:20:49.435195+00:00",
+     "exception": false,
+     "start_time": "2026-07-26T08:20:49.417286+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "sample_submission.csv\n",
+      "unlabeled_judge_data_bundle\n",
+      "training_data_bundle\n",
+      "data-chunk-info.txt\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "\n",
+    "base_path = \"/kaggle/input/competitions/fresco-early-job-failure-prediction-challenge\"\n",
+    "for item in os.listdir(base_path):\n",
+    "    print(item)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "45ad90c7",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-07-26T08:20:49.441242Z",
+     "iopub.status.busy": "2026-07-26T08:20:49.440631Z",
+     "iopub.status.idle": "2026-07-26T08:20:49.510039Z",
+     "shell.execute_reply": "2026-07-26T08:20:49.508752Z"
+    },
+    "papermill": {
+     "duration": 0.074818,
+     "end_time": "2026-07-26T08:20:49.512242+00:00",
+     "exception": false,
+     "start_time": "2026-07-26T08:20:49.437424+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Total files: 1\n",
+      "First 10 files: ['training_data']\n"
+     ]
+    }
+   ],
+   "source": [
+    "train_path = base_path + \"/training_data_bundle\"\n",
+    "files = os.listdir(train_path)\n",
+    "print(\"Total files:\", len(files))\n",
+    "print(\"First 10 files:\", files[:10])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "4a354948",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-07-26T08:20:49.518911Z",
+     "iopub.status.busy": "2026-07-26T08:20:49.517754Z",
+     "iopub.status.idle": "2026-07-26T08:20:49.635962Z",
+     "shell.execute_reply": "2026-07-26T08:20:49.634672Z"
+    },
+    "papermill": {
+     "duration": 0.123619,
+     "end_time": "2026-07-26T08:20:49.638024+00:00",
+     "exception": false,
+     "start_time": "2026-07-26T08:20:49.514405+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Total files: 56\n",
+      "First 10 files: ['2013-10', '2016-02', '2013-09', '2015-10', '2016-09', '2016-04', '2022-10', '2014-05', '2022-09', '2014-03']\n"
+     ]
+    }
+   ],
+   "source": [
+    "train_path2 = train_path + \"/training_data\"\n",
+    "files = os.listdir(train_path2)\n",
+    "print(\"Total files:\", len(files))\n",
+    "print(\"First 10 files:\", files[:10])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "6b4a69d9",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-07-26T08:20:49.643959Z",
+     "iopub.status.busy": "2026-07-26T08:20:49.643593Z",
+     "iopub.status.idle": "2026-07-26T08:20:49.678819Z",
+     "shell.execute_reply": "2026-07-26T08:20:49.677727Z"
+    },
+    "papermill": {
+     "duration": 0.040902,
+     "end_time": "2026-07-26T08:20:49.681069+00:00",
+     "exception": false,
+     "start_time": "2026-07-26T08:20:49.640167+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Total files in this month: 707\n",
+      "First 10 files: ['2013-10-08-19_S.parquet', '2013-10-25-20_S.parquet', '2013-10-20-16_S.parquet', '2013-10-11-21_S.parquet', '2013-10-20-12_S.parquet', '2013-10-13-08_S.parquet', '2013-10-24-20_S.parquet', '2013-10-04-10_S.parquet', '2013-10-20-05_S.parquet', '2013-10-30-05_S.parquet']\n"
+     ]
+    }
+   ],
+   "source": [
+    "month_path = train_path2 + \"/2013-10\"\n",
+    "files = os.listdir(month_path)\n",
+    "print(\"Total files in this month:\", len(files))\n",
+    "print(\"First 10 files:\", files[:10])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "633ea0db",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-07-26T08:20:49.687254Z",
+     "iopub.status.busy": "2026-07-26T08:20:49.686898Z",
+     "iopub.status.idle": "2026-07-26T08:20:50.984399Z",
+     "shell.execute_reply": "2026-07-26T08:20:50.983063Z"
+    },
+    "papermill": {
+     "duration": 1.30323,
+     "end_time": "2026-07-26T08:20:50.986607+00:00",
+     "exception": false,
+     "start_time": "2026-07-26T08:20:49.683377+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Shape: (2971, 22)\n",
+      "\n",
+      "Columns: ['time', 'submit_time', 'start_time', 'end_time', 'timelimit', 'nhosts', 'ncores', 'account', 'queue', 'host', 'jid', 'unit', 'jobname', 'exitcode', 'host_list', 'username', 'value_cpuuser', 'value_gpu', 'value_memused', 'value_memused_minus_diskcache', 'value_nfs', 'value_block']\n",
+      "\n",
+      "Data types:\n",
+      " time                             datetime64[us]\n",
+      "submit_time                      datetime64[us]\n",
+      "start_time                       datetime64[us]\n",
+      "end_time                         datetime64[us]\n",
+      "timelimit                                 int64\n",
+      "nhosts                                    int64\n",
+      "ncores                                    int64\n",
+      "account                                  object\n",
+      "queue                                    object\n",
+      "host                                     object\n",
+      "jid                                      object\n",
+      "unit                                     object\n",
+      "jobname                                  object\n",
+      "exitcode                                 object\n",
+      "host_list                                object\n",
+      "username                                 object\n",
+      "value_cpuuser                           float64\n",
+      "value_gpu                               float64\n",
+      "value_memused                           float64\n",
+      "value_memused_minus_diskcache           float64\n",
+      "value_nfs                               float64\n",
+      "value_block                             float64\n",
+      "dtype: object\n",
+      "\n",
+      "First 3 rows:\n",
+      "                  time         submit_time          start_time  \\\n",
+      "0 2013-10-08 19:00:00 2013-10-08 08:35:57 2013-10-08 18:58:51   \n",
+      "1 2013-10-08 19:00:00 2013-10-08 08:35:57 2013-10-08 18:58:51   \n",
+      "2 2013-10-08 19:00:00 2013-10-08 17:35:49 2013-10-08 17:52:02   \n",
+      "\n",
+      "             end_time  timelimit  nhosts  ncores       account      queue  \\\n",
+      "0 2013-10-08 19:00:14        480       3      48  ACCOUNT706_S   QUEUE4_S   \n",
+      "1 2013-10-08 19:00:14        480       3      48  ACCOUNT706_S   QUEUE4_S   \n",
+      "2 2013-10-08 19:00:19        480     384    6144  ACCOUNT272_S  QUEUE11_S   \n",
+      "\n",
+      "        host  ...      jobname   exitcode  \\\n",
+      "0  NODE698_S  ...  JOB469135_S  COMPLETED   \n",
+      "1  NODE695_S  ...  JOB469135_S  COMPLETED   \n",
+      "2  NODE981_S  ...  JOB284617_S  COMPLETED   \n",
+      "\n",
+      "                                           host_list   username value_cpuuser  \\\n",
+      "0                                NODE695_S,NODE698_S  USER107_S     19.147226   \n",
+      "1                                NODE695_S,NODE698_S  USER107_S     21.331589   \n",
+      "2  NODE514_S,NODE545_S,NODE553_S,NODE574_S,NODE57...  USER282_S     98.405114   \n",
+      "\n",
+      "  value_gpu  value_memused  value_memused_minus_diskcache    value_nfs  \\\n",
+      "0       NaN       8.572500                       2.811716   113.679945   \n",
+      "1       NaN       8.554438                       2.804249          NaN   \n",
+      "2       NaN      11.069729                      10.716455  1785.934594   \n",
+      "\n",
+      "    value_block  \n",
+      "0  4.235436e-02  \n",
+      "1  4.094153e-02  \n",
+      "2  5.531311e-07  \n",
+      "\n",
+      "[3 rows x 22 columns]\n"
+     ]
+    }
+   ],
+   "source": [
+    "import pandas as pd\n",
+    "\n",
+    "sample_file = month_path + \"/2013-10-08-19_S.parquet\"\n",
+    "df = pd.read_parquet(sample_file)\n",
+    "\n",
+    "print(\"Shape:\", df.shape)\n",
+    "print(\"\\nColumns:\", df.columns.tolist())\n",
+    "print(\"\\nData types:\\n\", df.dtypes)\n",
+    "print(\"\\nFirst 3 rows:\\n\", df.head(3))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "b8535dc0",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-07-26T08:20:50.994198Z",
+     "iopub.status.busy": "2026-07-26T08:20:50.993509Z",
+     "iopub.status.idle": "2026-07-26T08:21:28.197113Z",
+     "shell.execute_reply": "2026-07-26T08:21:28.195899Z"
+    },
+    "papermill": {
+     "duration": 37.211879,
+     "end_time": "2026-07-26T08:21:28.200913+00:00",
+     "exception": false,
+     "start_time": "2026-07-26T08:20:50.989034+00:00",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Raw rows loaded: (2417360, 22)\n",
+      "\n",
+      "Unique jobs after aggregation: 74118\n",
+      "\n",
+      "Exit code distribution:\n",
+      " exitcode\n",
+      "COMPLETED    50574\n",
+      "TIMEOUT      11838\n",
+      "FAILED        6203\n",
+      "CANCELLED     4769\n",
+      "NODE_FAIL      734\n",
+      "Name: count, dtype: int64\n",
+      "\n",
+      "Target distribution:\n",
+      " target\n",
+      "0    50574\n",
+      "1    18775\n",
+      "Name: count, dtype: int64\n",
+      "\n",
+      "=== Baseline model results ===\n",
+      "                         precision    recall  f1-score   support\n",
+      "\n",
+      "              Completed       0.86      0.94      0.90     10115\n",
+      "Failed/Timeout/NodeFail       0.79      0.58      0.67      3755\n",
+      "\n",
+      "               accuracy                           0.85     13870\n",
+      "              macro avg       0.83      0.76      0.79     13870\n",
+      "           weighted avg       0.84      0.85      0.84     13870\n",
+      "\n",
+      "Confusion matrix:\n",
+      " [[9546  569]\n",
+      " [1572 2183]]\n",
+      "\n",
+      "Feature importances:\n",
+      "  mem_mean: 0.144\n",
+      "  mem_max: 0.141\n",
+      "  timelimit: 0.120\n",
+      "  cpu_max: 0.114\n",
+      "  cpu_mean: 0.108\n",
+      "  block_mean: 0.096\n",
+      "  num_snapshots: 0.086\n",
+      "  nhosts: 0.067\n",
+      "  ncores: 0.065\n",
+      "  nfs_mean: 0.058\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "import pandas as pd\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.metrics import classification_report, confusion_matrix\n",
+    "\n",
+    "# ---------------------------------------------------------------\n",
+    "# STEP 1: Load a manageable sample of raw hourly files\n",
+    "# (Using a few month folders for today's baseline -- not all 46,795\n",
+    "# files. We can scale this up later for a stronger model.)\n",
+    "# ---------------------------------------------------------------\n",
+    "train_root = \"/kaggle/input/competitions/fresco-early-job-failure-prediction-challenge/training_data_bundle/training_data\"\n",
+    "sample_months = [\"2013-10\", \"2014-03\", \"2014-05\"]  # small sample to start\n",
+    "\n",
+    "all_rows = []\n",
+    "for month in sample_months:\n",
+    "    month_dir = os.path.join(train_root, month)\n",
+    "    files = os.listdir(month_dir)[:100]  # first 100 files per month, for speed today\n",
+    "    for fname in files:\n",
+    "        fpath = os.path.join(month_dir, fname)\n",
+    "        df = pd.read_parquet(fpath)\n",
+    "        all_rows.append(df)\n",
+    "\n",
+    "raw = pd.concat(all_rows, ignore_index=True)\n",
+    "print(\"Raw rows loaded:\", raw.shape)\n",
+    "\n",
+    "# ---------------------------------------------------------------\n",
+    "# STEP 2: Aggregate hourly snapshots into ONE row per job\n",
+    "# ---------------------------------------------------------------\n",
+    "job_features = raw.groupby(\"jid\").agg(\n",
+    "    nhosts=(\"nhosts\", \"max\"),\n",
+    "    ncores=(\"ncores\", \"max\"),\n",
+    "    timelimit=(\"timelimit\", \"max\"),\n",
+    "    cpu_mean=(\"value_cpuuser\", \"mean\"),\n",
+    "    cpu_max=(\"value_cpuuser\", \"max\"),\n",
+    "    mem_mean=(\"value_memused\", \"mean\"),\n",
+    "    mem_max=(\"value_memused\", \"max\"),\n",
+    "    nfs_mean=(\"value_nfs\", \"mean\"),\n",
+    "    block_mean=(\"value_block\", \"mean\"),\n",
+    "    num_snapshots=(\"time\", \"count\"),\n",
+    "    exitcode=(\"exitcode\", \"first\"),  # the job's final outcome (label source only)\n",
+    ").reset_index()\n",
+    "\n",
+    "print(\"\\nUnique jobs after aggregation:\", job_features.shape[0])\n",
+    "print(\"\\nExit code distribution:\\n\", job_features[\"exitcode\"].value_counts())\n",
+    "\n",
+    "# ---------------------------------------------------------------\n",
+    "# STEP 3: Build the target label (drop CANCELLED, per the rules)\n",
+    "# ---------------------------------------------------------------\n",
+    "job_features = job_features[job_features[\"exitcode\"] != \"CANCELLED\"].copy()\n",
+    "job_features[\"target\"] = job_features[\"exitcode\"].apply(\n",
+    "    lambda x: 1 if x in (\"FAILED\", \"TIMEOUT\", \"NODE_FAIL\") else 0\n",
+    ")\n",
+    "\n",
+    "print(\"\\nTarget distribution:\\n\", job_features[\"target\"].value_counts())\n",
+    "\n",
+    "# ---------------------------------------------------------------\n",
+    "# STEP 4: Train a simple baseline classifier\n",
+    "# ---------------------------------------------------------------\n",
+    "feature_cols = [\"nhosts\", \"ncores\", \"timelimit\", \"cpu_mean\", \"cpu_max\",\n",
+    "                 \"mem_mean\", \"mem_max\", \"nfs_mean\", \"block_mean\", \"num_snapshots\"]\n",
+    "\n",
+    "X = job_features[feature_cols].fillna(0)\n",
+    "y = job_features[\"target\"]\n",
+    "\n",
+    "X_train, X_test, y_train, y_test = train_test_split(\n",
+    "    X, y, test_size=0.2, random_state=42, stratify=y\n",
+    ")\n",
+    "\n",
+    "clf = RandomForestClassifier(n_estimators=100, random_state=42, class_weight=\"balanced\")\n",
+    "clf.fit(X_train, y_train)\n",
+    "\n",
+    "preds = clf.predict(X_test)\n",
+    "\n",
+    "print(\"\\n=== Baseline model results ===\")\n",
+    "print(classification_report(y_test, preds, target_names=[\"Completed\", \"Failed/Timeout/NodeFail\"]))\n",
+    "print(\"Confusion matrix:\\n\", confusion_matrix(y_test, preds))\n",
+    "\n",
+    "print(\"\\nFeature importances:\")\n",
+    "for name, importance in sorted(zip(feature_cols, clf.feature_importances_), key=lambda x: -x[1]):\n",
+    "    print(f\"  {name}: {importance:.3f}\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [],
+   "dockerImageVersionId": 28755,
+   "isGpuEnabled": false,
+   "isInternetEnabled": false,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.12.13"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 45.369873,
+   "end_time": "2026-07-26T08:21:31.545204+00:00",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2026-07-26T08:20:46.175331+00:00",
+   "version": "2.7.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
