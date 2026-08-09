@@ -25,7 +25,7 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import average_precision_score
 
 # ---------------------------------------------------------------------------
@@ -33,6 +33,16 @@ from sklearn.metrics import average_precision_score
 # ---------------------------------------------------------------------------
 BASE_PATH = r"F:\IEEE\kaggle_cache\competitions\fresco-early-job-failure-prediction-challenge"
 TRAIN_ROOT = os.path.join(BASE_PATH, "training_data_bundle", "training_data")
+
+# Confirmed real folder -- flat structure, no month subfolders.
+VALIDATION_ROOT = os.path.join(BASE_PATH, "validation_labeled_bundle")
+USE_VALIDATION_CHUNK_FOR_TRAINING = True  # confirmed permitted by organizers (Piazza @46)
+
+# Per Piazza @51: Conte (C) is missing from the released validation chunk --
+# only fold it in for S and Anvil.
+VALIDATION_MONTHS = [
+    "2017-01", "2017-02", "2017-03",  # adjust once real folder contents are confirmed
+]
 
 MONTHS_FOR_TRAIN = [
     "2013-02", "2013-03", "2013-04", "2013-05", "2013-06",  # S era
@@ -150,12 +160,37 @@ def process_one_file(fpath, cluster, accumulator, capped_jobs):
     return
 
 
-def process_months_streaming(month_list):
+def process_flat_folder_streaming(folder_path):
+    """Like process_months_streaming, but for a folder that contains all
+    .parquet files directly (no month subfolders) -- this is how
+    validation_labeled_bundle is structured, unlike training_data_bundle."""
     accumulator = {}
     capped_jobs = set()
 
+    files = sorted(f for f in os.listdir(folder_path) if f.endswith(".parquet"))
+    print(f"  Processing {len(files)} files directly in {folder_path}...")
+
+    for i, fname in enumerate(files):
+        cluster = cluster_code_from_filename(fname)
+        fpath = os.path.join(folder_path, fname)
+        process_one_file(fpath, cluster, accumulator, capped_jobs)
+
+        if (i + 1) % 200 == 0:
+            print(f"    ...{i + 1}/{len(files)} files done "
+                  f"(jobs tracked so far: {len(accumulator):,})")
+
+    gc.collect()
+    print(f"  Done. Total unique jobs tracked: {len(accumulator):,}")
+    return accumulator
+
+
+def process_months_streaming(month_list, root_dir=None):
+    accumulator = {}
+    capped_jobs = set()
+    root_dir = root_dir or TRAIN_ROOT
+
     for month in month_list:
-        month_dir = os.path.join(TRAIN_ROOT, month)
+        month_dir = os.path.join(root_dir, month)
         if not os.path.isdir(month_dir):
             print(f"  month {month}: not found, skipping.")
             continue
@@ -246,9 +281,9 @@ def train_and_evaluate(train_features, val_features):
             print(f"  [{cluster}] skipped AUPRC -- validation set has only one class present.")
             continue
 
-        clf = RandomForestClassifier(
-            n_estimators=200, max_depth=10, random_state=42,
-            class_weight="balanced", n_jobs=-1,
+        clf = HistGradientBoostingClassifier(
+            max_iter=300, max_depth=8, learning_rate=0.08,
+            class_weight="balanced", random_state=42,
         )
         clf.fit(X_train, y_train)
 
@@ -277,7 +312,24 @@ def main():
     del train_acc
     gc.collect()
 
-    print("\nStreaming LOCAL VALIDATION months...")
+    if USE_VALIDATION_CHUNK_FOR_TRAINING and os.path.isdir(VALIDATION_ROOT):
+        print("\nStreaming VALIDATION CHUNK (folding into training, per Piazza confirmation)...")
+        extra_acc = process_flat_folder_streaming(VALIDATION_ROOT)
+        extra_features = add_label(accumulator_to_dataframe(extra_acc))
+        del extra_acc
+        gc.collect()
+
+        # Conte (C) is confirmed missing from the released validation chunk.
+        extra_features = extra_features[extra_features["cluster"] != "C"]
+        print(f"  Adding {len(extra_features):,} extra jobs from validation chunk "
+              f"(S + Anvil only)")
+
+        train_features = pd.concat([train_features, extra_features], ignore_index=True)
+    else:
+        print(f"\nValidation chunk folding SKIPPED -- confirm VALIDATION_ROOT path "
+              f"({VALIDATION_ROOT}) exists before relying on this.")
+
+    print("\nStreaming LOCAL VALIDATION months (held-out, for our own AUPRC check)...")
     val_acc = process_months_streaming(MONTHS_FOR_LOCAL_VAL)
     val_features = add_label(accumulator_to_dataframe(val_acc))
     del val_acc
